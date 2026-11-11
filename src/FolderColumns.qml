@@ -174,23 +174,13 @@ Item {
                     onActivated: backend.open(path)
                 }
 
-                // Where the first item would be, lined up with the names. With
-                // the keyboard here it wears the cursor, so an empty folder
-                // still shows where the keys go (else the sidebar's lit place
-                // looked like it had them).
-                Rectangle {
-                    x: 4
-                    width: here.width - 8
-                    height: 32
-                    radius: Math.min(4, theme.radius)
+                // Where the first item would be, lined up with the names.
+                Text {
+                    x: LayoutMirroring.enabled ? here.width - width - 46 : 46
+                    y: 8
                     visible: here.count === 0 && !backend.folder.loading && backend.folder.error.length === 0
-                    color: here.activeFocus ? Qt.alpha(theme.accent, 0.18) : "transparent"
-                    Text {
-                        x: LayoutMirroring.enabled ? parent.width - width - 42 : 42
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: backend.folder.query ? qsTr("No matches") : qsTr("No items")
-                        color: theme.secondaryForeground
-                    }
+                    text: backend.folder.query ? qsTr("No matches") : qsTr("No items")
+                    color: theme.secondaryForeground
                 }
             }
             Separator { }

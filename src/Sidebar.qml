@@ -183,7 +183,12 @@ Rectangle {
 
         background: Rectangle {
             radius: Math.min(4, theme.radius)
-            color: row.active || row.dropHover ? Qt.alpha(theme.accent, 0.16)
+            // Where we are is marked as the columns mark the way here, not
+            // in the accent the files' cursor wears: in an empty folder,
+            // with no cursor to see, it read as the keyboard having moved
+            // to the sidebar.
+            color: row.dropHover ? Qt.alpha(theme.accent, 0.16)
+                 : row.active ? Qt.alpha(theme.foreground, 0.08)
                  : row.hovered && row.enabled ? Qt.alpha(theme.foreground, 0.06) : "transparent"
             border.width: row.dropHover ? 2 : row.keyed ? 1 : 0
             border.color: theme.accent

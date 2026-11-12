@@ -54,6 +54,12 @@ Rectangle {
     // Gone (a folder selected, or another view), it describes nothing, so
     // plugins stop being asked about the file it showed last.
     Component.onDestruction: backend.describe({}, false)
+    // Made executable or not from the menu: the item looks the same in the
+    // folder, so its permissions are read again here.
+    Connections {
+        target: pane.folderPane ? pane.folderPane.paneFileOps : null
+        function onModesChanged(paths) { if (pane.hasItem && paths.includes(pane.item.path)) pane.describe() }
+    }
 
     // It sits on the columns' background, and their separator marks its
     // edge.
@@ -252,6 +258,21 @@ Rectangle {
                     const when = pane.trashed ? pane.info.deleted : pane.noting ? null : pane.item.modified
                     return pane.hasItem && when ? Format.stamp(when, translator.dateLocale) : ""
                 }
+                color: theme.foreground
+                size: 12
+            }
+            // As ls writes them; Make Executable in the menu changes them. The
+            // row keeps its place while they're read, so moving through files
+            // doesn't shift the rows below it. Not in the trash, where nothing
+            // changes them.
+            readonly property bool permissionsShown: pane.hasItem && !pane.trashed && !pane.pluginItem
+                                                     && pane.item.path.startsWith("/")
+            FolioText { visible: parent.permissionsShown; text: qsTr("Permissions"); color: theme.secondaryForeground; size: 12 }
+            FolioText {
+                visible: parent.permissionsShown
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignRight
+                text: pane.info.permissions || ""
                 color: theme.foreground
                 size: 12
             }

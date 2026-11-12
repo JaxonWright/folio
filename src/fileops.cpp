@@ -1043,18 +1043,27 @@ bool FileOps::executable(const QStringList &paths) const {
 void FileOps::setExecutable(const QStringList &paths, bool on) {
     QStringList changed, failures;
     for (const QString &path : paths) {
+        // Looked at and changed through one handle, so a link put anywhere
+        // in the path after the menu opened can't send the change elsewhere.
+        const int fd = ::open(QFile::encodeName(path).constData(), O_PATH | O_NOFOLLOW | O_CLOEXEC);
         struct stat st;
-        if (!ownFile(path, &st))
+        if (fd < 0 || ::fstat(fd, &st) != 0 || !S_ISREG(st.st_mode) || st.st_uid != ::geteuid()) {
+            if (fd >= 0)
+                ::close(fd);
             continue;
+        }
         // Whoever may read it may run it, so a file kept private stays so;
         // off, no one may.
         const mode_t read = st.st_mode & (S_IRUSR | S_IRGRP | S_IROTH);
         const mode_t mode = on ? (st.st_mode | read >> 2) : (st.st_mode & ~(S_IXUSR | S_IXGRP | S_IXOTH));
-        // Never through a link put there since it was looked at.
-        if (::fchmodat(AT_FDCWD, QFile::encodeName(path).constData(), mode & 07777, AT_SYMLINK_NOFOLLOW) == 0)
+        // fchmod() can't take an O_PATH handle; its /proc link can be changed.
+        const bool done = ::chmod(("/proc/self/fd/" + QByteArray::number(fd)).constData(), mode & 07777) == 0;
+        const int why = errno;
+        ::close(fd);
+        if (done)
             changed << path;
         else
-            failures << tr("%1 (%2)").arg(QFileInfo(path).fileName(), QString::fromLocal8Bit(strerror(errno)));
+            failures << tr("%1 (%2)").arg(QFileInfo(path).fileName(), QString::fromLocal8Bit(strerror(why)));
     }
     if (!changed.isEmpty())
         emit modesChanged(changed);

@@ -170,7 +170,7 @@ Rectangle {
             // row keeps its place while they're read, so moving through files
             // doesn't shift the rows below it. Not in the trash, where nothing
             // changes them.
-            readonly property bool permissionsShown: pane.hasItem && !pane.trashed && !pane.pluginItem
+            readonly property bool permissionsShown: pane.hasItem && !(pane.folderPane && pane.folderPane.inTrash) && !pane.pluginItem
                                                      && pane.item.path.startsWith("/")
             Text { visible: parent.permissionsShown; text: qsTr("Permissions"); color: theme.secondaryForeground; font.pixelSize: 12 }
             Text {

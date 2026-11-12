@@ -7,6 +7,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QFutureWatcher>
+#include <QThreadPool>
 #include <QGuiApplication>
 #include <QImageReader>
 #include <QMimeDatabase>
@@ -407,7 +408,17 @@ void Backend::describe(const QVariantMap &item, bool inTrash) {
     // Stepping through files faster than they're read queues readings; the
     // ones overtaken before they start are skipped rather than left to tie
     // up the threads the next folder is listed on.
-    watcher->setFuture(QtConcurrent::run([path, kind, inTrash, latest = m_describing, generation] {
+    // Every local item is read now (its permissions at least), so the
+    // readings get a few threads of their own: moving across folders on a
+    // mount that stopped answering leaves reads stuck, and in the shared
+    // pool they'd keep any folder from being listed. Never torn down, so a
+    // stuck one can't keep Folio from quitting either.
+    static QThreadPool *const reading = [] {
+        auto *pool = new QThreadPool;
+        pool->setMaxThreadCount(4);
+        return pool;
+    }();
+    watcher->setFuture(QtConcurrent::run(reading, [path, kind, inTrash, latest = m_describing, generation] {
         QVariantMap read;
         if (*latest != generation)
             return read;

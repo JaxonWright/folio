@@ -1422,7 +1422,7 @@ QString FileOps::originalPath(const QString &trashedPath) {
         const QString trashDir = QFileInfo(QFileInfo(trashedPath).absolutePath()).absolutePath();
         const QString top = trashDir.contains("/.Trash/") ? trashDir.section("/.Trash/", 0, 0)
                                                           : QFileInfo(trashDir).absolutePath();
-        return QDir(top).filePath(path);
+        return QDir(top.isEmpty() ? QStringLiteral("/") : top).filePath(path);
     }
     return {};
 }

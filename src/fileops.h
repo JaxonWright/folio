@@ -228,6 +228,12 @@ public:
     // The editor Omarchy opens text files in (the command, such as code),
     // read as omarchy-launch-editor reads it.
     static QString omarchyEditor();
+    // Among visible apps ({executable, name}), the name of the one that runs
+    // omarchyEditor(), or empty.
+    static QString editorAppName(const QVariantList &apps);
+    // An Opens with list without the entries named like the editor handler,
+    // when that's its default and first entry.
+    static QVariantList foldHandlerRepeats(QVariantList apps);
     // Opens the file in that app; a sentence saying why not when it can't.
     static QString openInDefaultApp(const QString &path);
     // Whether the item at `path` is on the drive `folder` is on.

@@ -746,6 +746,34 @@ private slots:
         QCOMPARE(model.get(0).value("path").toString(), b.filePath("report.txt"));
     }
 
+    void fileOpsKnowsTheEditorOmarchyOpens()
+    {
+        // The editor picked under Setup > Default > Editor, read the way
+        // omarchy-launch-editor reads it: Neovim when none was picked, or
+        // when the picked one isn't installed.
+        QTemporaryDir home, bin;
+        const QByteArray oldHome = qgetenv("HOME"), oldPath = qgetenv("PATH");
+        const auto restore = qScopeGuard([&] {
+            qputenv("HOME", oldHome);
+            qputenv("PATH", oldPath);
+        });
+        qputenv("HOME", QFile::encodeName(home.path()));
+        qputenv("PATH", QFile::encodeName(bin.path()));
+        for (const char *name : {"code", "subl"}) {
+            write(bin.filePath(name), "#!/bin/sh\n");
+            QVERIFY(QFile::setPermissions(bin.filePath(name), QFile::ReadOwner | QFile::ExeOwner));
+        }
+        QCOMPARE(FileOps::omarchyEditor(), QString("nvim"));
+        const QString setting = home.filePath(".local/state/omarchy/defaults/editor");
+        QVERIFY(QDir().mkpath(QFileInfo(setting).path()));
+        write(setting, "code\n");
+        QCOMPARE(FileOps::omarchyEditor(), QString("code"));
+        write(setting, "sublime_text\n");
+        QCOMPARE(FileOps::omarchyEditor(), QString("subl"));
+        write(setting, "zeditor\n");
+        QCOMPARE(FileOps::omarchyEditor(), QString("nvim"));
+    }
+
     void fileOpsDeleteForeverOutsideTheTrash()
     {
         // Shift+Delete deletes for good anywhere: the folder and what's in

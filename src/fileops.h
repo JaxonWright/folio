@@ -225,6 +225,9 @@ public:
     // "Open with Plain"; empty when none is set up. By the type the listing
     // already knows, so a slow drive is never read for it.
     Q_INVOKABLE static QString defaultAppName(const QString &mime);
+    // The editor Omarchy opens text files in (the command, such as code),
+    // read as omarchy-launch-editor reads it.
+    static QString omarchyEditor();
     // Opens the file in that app; a sentence saying why not when it can't.
     static QString openInDefaultApp(const QString &path);
     // Whether the item at `path` is on the drive `folder` is on.

@@ -768,6 +768,34 @@ private slots:
         QVERIFY(!QFileInfo::exists(data.filePath("Trash/files/album")));
     }
 
+    void fileOpsKnowsTheTrashFromThePath()
+    {
+        // The home trash's files folder and what's below it are the trash;
+        // so is a drive's own .Trash-<uid> or .Trash/<uid> at its top, but
+        // not a folder by that name further down.
+        QTemporaryDir dir, data;
+        const auto restore = dataHomeAt(data.path());
+        const QString home = data.filePath("Trash");
+        QDir().mkpath(home + "/files/album");
+        QDir().mkpath(home + "/info");
+        FileOps ops;
+        QVERIFY(ops.inTrash(home + "/files"));
+        QVERIFY(ops.inTrash(home + "/files/album"));
+        QVERIFY(!ops.inTrash(home));
+        QVERIFY(!ops.inTrash(home + "/info"));
+        QVERIFY(!ops.inTrash(dir.path()));
+        QCOMPARE(FileOps::infoFileFor(home + "/files/album"), home + "/info/album.trashinfo");
+        QCOMPARE(FileOps::infoFileFor(home + "/files/album/a.jpg"), QString());
+
+        const QString uid = QString::number(getuid());
+        QVERIFY(ops.inTrash("/.Trash-" + uid + "/files/x"));
+        QVERIFY(ops.inTrash("/.Trash/" + uid + "/files"));
+        QCOMPARE(FileOps::infoFileFor("/.Trash-" + uid + "/files/x"), "/.Trash-" + uid + "/info/x.trashinfo");
+        QDir().mkpath(dir.filePath(".Trash-" + uid + "/files/x"));
+        QVERIFY(!ops.inTrash(dir.filePath(".Trash-" + uid + "/files/x")));
+        QCOMPARE(FileOps::infoFileFor(dir.filePath(".Trash-" + uid + "/files/x")), QString());
+    }
+
     void folderPaneKeysAreNotBoundTwice()
     {
         // Two shortcuts on one key, both on, make Qt call neither: the key

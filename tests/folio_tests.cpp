@@ -796,6 +796,31 @@ private slots:
         QCOMPARE(FileOps::infoFileFor(dir.filePath(".Trash-" + uid + "/files/x")), QString());
     }
 
+    void fileOpsKnowsTheTrashUnderADataHomeAsWritten()
+    {
+        // XDG_DATA_HOME=~/.local/share/ is the same folder, and link/../data
+        // is wherever link leads: what's deleted there is in the trash, and
+        // Undo Delete finds where it came from.
+        QTemporaryDir dir, data;
+        QVERIFY(QDir().mkpath(data.filePath("real/child")) && QDir().mkpath(data.filePath("real/data")));
+        QVERIFY(QFile::link(data.filePath("real/child"), data.filePath("link")));
+        for (const QString &home : {data.filePath("real/data") + '/', data.filePath("link/../data")}) {
+            const auto restore = dataHomeAt(home);
+            write(dir.filePath("a.txt"), "a");
+            FileOps ops;
+            QSignalSpy failed(&ops, &FileOps::failed);
+            ops.trash({dir.filePath("a.txt")});
+            QTRY_VERIFY(ops.busy().isEmpty());
+            QVERIFY(QFile::exists(data.filePath("real/data/Trash/files/a.txt")));
+            QVERIFY(ops.inTrash(QDir::cleanPath(home + "/Trash/files")));
+            QCOMPARE(FileOps::originalPath(home + "/Trash/files/a.txt"), dir.filePath("a.txt"));
+            ops.undo();
+            QTRY_VERIFY(ops.busy().isEmpty());
+            QCOMPARE(contents(dir.filePath("a.txt")), QByteArray("a"));
+            QCOMPARE(failed.count(), 0);
+        }
+    }
+
     void fileOpsRestoresFromTheRootDrivesTrashToTheTop()
     {
         // A drive's own trash notes paths from the top of the drive; for /

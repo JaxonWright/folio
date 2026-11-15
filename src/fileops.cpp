@@ -1374,7 +1374,7 @@ QStringList FileOps::trashDirs() {
 QString FileOps::trashFor(const QString &path) {
     const QString clean = QDir::cleanPath(path);
     const auto under = [&clean](const QString &files) { return clean == files || clean.startsWith(files + '/'); };
-    if (const QString home = homeTrash(); under(home + "/files"))
+    if (const QString home = homeTrash(); under(QDir::cleanPath(home + "/files")))
         return home;
     // Read from the path, not by asking every mounted drive: one that doesn't
     // answer (a network share whose host is gone) would stall the window on
@@ -1405,7 +1405,7 @@ QString FileOps::infoFileFor(const QString &trashedPath) {
     const QFileInfo item(trashedPath);
     const QString folder = QDir::cleanPath(item.absolutePath());
     const QString dir = trashFor(folder);
-    return !dir.isEmpty() && folder == dir + "/files" ? dir + "/info/" + item.fileName() + ".trashinfo" : QString();
+    return !dir.isEmpty() && folder == QDir::cleanPath(dir + "/files") ? dir + "/info/" + item.fileName() + ".trashinfo" : QString();
 }
 
 QString FileOps::originalPath(const QString &trashedPath) {

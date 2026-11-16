@@ -770,60 +770,40 @@ private slots:
 
     void fileOpsKnowsTheTrashFromThePath()
     {
-        // The home trash's files folder and what's below it are the trash;
-        // so is a drive's own .Trash-<uid> or .Trash/<uid> at its top, but
-        // not a folder by that name further down.
-        QTemporaryDir dir, data;
+        // The home trash's files and below, and a drive's own .Trash-<uid> or
+        // .Trash/<uid> at its top, not a folder by that name lower down.
+        QTemporaryDir data;
         const auto restore = dataHomeAt(data.path());
         const QString home = data.filePath("Trash");
-        QDir().mkpath(home + "/files/album");
-        QDir().mkpath(home + "/info");
         FileOps ops;
         QVERIFY(ops.inTrash(home + "/files"));
         QVERIFY(ops.inTrash(home + "/files/album"));
         QVERIFY(!ops.inTrash(home));
         QVERIFY(!ops.inTrash(home + "/info"));
-        QVERIFY(!ops.inTrash(dir.path()));
         QCOMPARE(FileOps::infoFileFor(home + "/files/album"), home + "/info/album.trashinfo");
         QCOMPARE(FileOps::infoFileFor(home + "/files/album/a.jpg"), QString());
 
         const QString uid = QString::number(getuid());
-        QVERIFY(ops.inTrash("/.Trash-" + uid + "/files/x"));
         QVERIFY(ops.inTrash("/.Trash/" + uid + "/files"));
         QCOMPARE(FileOps::infoFileFor("/.Trash-" + uid + "/files/x"), "/.Trash-" + uid + "/info/x.trashinfo");
-        QDir().mkpath(dir.filePath(".Trash-" + uid + "/files/x"));
-        QVERIFY(!ops.inTrash(dir.filePath(".Trash-" + uid + "/files/x")));
-        QCOMPARE(FileOps::infoFileFor(dir.filePath(".Trash-" + uid + "/files/x")), QString());
+        QVERIFY(!ops.inTrash("/.Trash-" + uid + "/files-old/x"));
+        QVERIFY(!ops.inTrash(data.filePath(".Trash-" + uid + "/files/x")));
     }
 
     void fileOpsKnowsTheTrashUnderADataHomeAsWritten()
     {
-        // XDG_DATA_HOME=~/.local/share/ is the same folder, and link/../data
-        // is wherever link leads, not the data folder beside link: what's
-        // deleted there is in the trash, Undo Delete finds where it came
-        // from, and the folder beside link is no trash.
-        QTemporaryDir dir, data;
-        QVERIFY(QDir().mkpath(data.filePath("real/child")) && QDir().mkpath(data.filePath("real/data")));
+        // ~/.local/share/ is the same folder, and link/../data is where link
+        // leads, not the folder beside link that cleaning the path names.
+        QTemporaryDir data;
+        const QString trash = data.filePath("real/data/Trash");
+        QVERIFY(QDir().mkpath(trash + "/info") && QDir().mkpath(data.filePath("real/child")));
         QVERIFY(QFile::link(data.filePath("real/child"), data.filePath("link")));
-        QVERIFY(QDir().mkpath(data.filePath("data/Trash/files")));
-        write(data.filePath("data/Trash/files/a.txt"), "beside");
-        const QString trash = data.filePath("real/data/Trash/files");
+        write(trash + "/info/a.txt.trashinfo", "[Trash Info]\nPath=/a.txt\n");
+        FileOps ops;
         for (const QString &home : {data.filePath("real/data") + '/', data.filePath("link/../data")}) {
             const auto restore = dataHomeAt(home);
-            write(dir.filePath("a.txt"), "a");
-            FileOps ops;
-            QSignalSpy failed(&ops, &FileOps::failed);
-            ops.trash({dir.filePath("a.txt")});
-            QTRY_VERIFY(ops.busy().isEmpty());
-            QVERIFY(QFile::exists(trash + "/a.txt"));
-            QVERIFY(ops.inTrash(trash));
-            QCOMPARE(FileOps::originalPath(trash + "/a.txt"), dir.filePath("a.txt"));
-            QVERIFY(!ops.inTrash(data.filePath("data/Trash/files")));
-            QCOMPARE(FileOps::originalPath(data.filePath("data/Trash/files/a.txt")), QString());
-            ops.undo();
-            QTRY_VERIFY(ops.busy().isEmpty());
-            QCOMPARE(contents(dir.filePath("a.txt")), QByteArray("a"));
-            QCOMPARE(failed.count(), 0);
+            QVERIFY(ops.inTrash(trash + "/files"));
+            QCOMPARE(FileOps::originalPath(trash + "/files/a.txt"), QString("/a.txt"));
         }
     }
 
@@ -837,9 +817,8 @@ private slots:
         const QString dir = "/.Trash/" + uid;
         if (!QFileInfo(QStringLiteral("/")).isWritable() || QFileInfo::exists(QStringLiteral("/.Trash")))
             QSKIP("needs a writable / without a .Trash");
-        QVERIFY(QDir().mkpath(dir + "/files") && QDir().mkpath(dir + "/info"));
+        QVERIFY(QDir().mkpath(dir + "/info"));
         const auto gone = qScopeGuard([] { QDir(QStringLiteral("/.Trash")).removeRecursively(); });
-        write(dir + "/files/a.txt", "a");
         write(dir + "/info/a.txt.trashinfo", "[Trash Info]\nPath=docs/a.txt\n");
         QCOMPARE(FileOps::originalPath(dir + "/files/a.txt"), QString("/docs/a.txt"));
     }

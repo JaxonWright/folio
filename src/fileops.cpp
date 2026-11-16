@@ -1424,10 +1424,9 @@ QString FileOps::originalPath(const QString &trashedPath) {
         if (path.startsWith('/'))
             return path;
         // A drive's own trash records paths from the top of that drive.
-        const QString trashDir = QFileInfo(QFileInfo(trashedPath).absolutePath()).absolutePath();
-        const QString top = trashDir.contains("/.Trash/") ? trashDir.section("/.Trash/", 0, 0)
-                                                          : QFileInfo(trashDir).absolutePath();
-        return QDir(top.isEmpty() ? QStringLiteral("/") : top).filePath(path);
+        const QString up = QFileInfo(QFileInfo(QFileInfo(trashedPath).absolutePath()).absolutePath()).absolutePath();
+        const QString top = QFileInfo(up).fileName() == ".Trash" ? QFileInfo(up).absolutePath() : up;
+        return QDir(top).filePath(path);
     }
     return {};
 }

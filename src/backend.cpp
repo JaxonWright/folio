@@ -397,8 +397,6 @@ void Backend::describe(const QVariantMap &item, bool inTrash) {
         QVariantMap read;
         if (*latest != generation)
             return read;
-        // A trashed item's note: finding it looks over every mounted drive,
-        // and one that's hung would hold up the window.
         if (inTrash) {
             read.insert("origin", FileOps::originalPath(path));
             read.insert("deleted", FileOps::deletedAt(path));

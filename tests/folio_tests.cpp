@@ -799,11 +799,15 @@ private slots:
     void fileOpsKnowsTheTrashUnderADataHomeAsWritten()
     {
         // XDG_DATA_HOME=~/.local/share/ is the same folder, and link/../data
-        // is wherever link leads: what's deleted there is in the trash, and
-        // Undo Delete finds where it came from.
+        // is wherever link leads, not the data folder beside link: what's
+        // deleted there is in the trash, Undo Delete finds where it came
+        // from, and the folder beside link is no trash.
         QTemporaryDir dir, data;
         QVERIFY(QDir().mkpath(data.filePath("real/child")) && QDir().mkpath(data.filePath("real/data")));
         QVERIFY(QFile::link(data.filePath("real/child"), data.filePath("link")));
+        QVERIFY(QDir().mkpath(data.filePath("data/Trash/files")));
+        write(data.filePath("data/Trash/files/a.txt"), "beside");
+        const QString trash = data.filePath("real/data/Trash/files");
         for (const QString &home : {data.filePath("real/data") + '/', data.filePath("link/../data")}) {
             const auto restore = dataHomeAt(home);
             write(dir.filePath("a.txt"), "a");
@@ -811,9 +815,11 @@ private slots:
             QSignalSpy failed(&ops, &FileOps::failed);
             ops.trash({dir.filePath("a.txt")});
             QTRY_VERIFY(ops.busy().isEmpty());
-            QVERIFY(QFile::exists(data.filePath("real/data/Trash/files/a.txt")));
-            QVERIFY(ops.inTrash(QDir::cleanPath(home + "/Trash/files")));
-            QCOMPARE(FileOps::originalPath(home + "/Trash/files/a.txt"), dir.filePath("a.txt"));
+            QVERIFY(QFile::exists(trash + "/a.txt"));
+            QVERIFY(ops.inTrash(trash));
+            QCOMPARE(FileOps::originalPath(trash + "/a.txt"), dir.filePath("a.txt"));
+            QVERIFY(!ops.inTrash(data.filePath("data/Trash/files")));
+            QCOMPARE(FileOps::originalPath(data.filePath("data/Trash/files/a.txt")), QString());
             ops.undo();
             QTRY_VERIFY(ops.busy().isEmpty());
             QCOMPARE(contents(dir.filePath("a.txt")), QByteArray("a"));

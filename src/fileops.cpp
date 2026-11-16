@@ -1355,7 +1355,11 @@ QString FileOps::trashOne(const QString &path, QString *error) {
 }
 
 QString FileOps::homeTrash() {
-    return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/Trash";
+    // The trash is told from paths once they're cleaned, and cleaning takes
+    // link/.. to the folder beside link, not to where link leads.
+    const QString data = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
+    const QString real = data.split('/').contains("..") ? QFileInfo(data).canonicalFilePath() : QString();
+    return (real.isEmpty() ? data : real) + "/Trash";
 }
 
 QStringList FileOps::trashDirs() {

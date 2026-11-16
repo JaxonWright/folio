@@ -1382,19 +1382,20 @@ QString FileOps::trashFor(const QString &path) {
         return home;
     // Read from the path, not by asking every mounted drive: one that doesn't
     // answer (a network share whose host is gone) would stall the window on
-    // every folder opened. Only the drive the path is on is asked where its
-    // top is.
+    // every folder opened. Only where the path passes a trash folder's name
+    // is a drive asked whether that's its top, and the innermost one wins:
+    // a drive can be mounted under another's trash.
     const QString uid = QString::number(getuid());
+    QString found;
     for (const QString &marker : {"/.Trash-" + uid, "/.Trash/" + uid}) {
-        const qsizetype at = clean.indexOf(marker + "/files");
-        if (at < 0)
-            continue;
-        const QString dir = clean.left(at + marker.size());
-        const QString top = at == 0 ? QStringLiteral("/") : clean.left(at);
-        if (under(dir + "/files") && QStorageInfo(top).rootPath() == top)
-            return dir;
+        for (qsizetype at = clean.indexOf(marker + "/files"); at >= 0; at = clean.indexOf(marker + "/files", at + 1)) {
+            const QString dir = clean.left(at + marker.size());
+            const QString top = at == 0 ? QStringLiteral("/") : clean.left(at);
+            if (dir.size() > found.size() && under(dir + "/files") && QStorageInfo(top).rootPath() == top)
+                found = dir;
+        }
     }
-    return {};
+    return found;
 }
 
 bool FileOps::inTrash(const QString &path) const {

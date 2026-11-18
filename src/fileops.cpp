@@ -1077,6 +1077,9 @@ bool FileOps::executable(const QStringList &paths) const {
 }
 
 void FileOps::setExecutable(const QStringList &paths, bool on) {
+    // A copy still being written takes its source's mode once it's done.
+    if (paths.isEmpty() || !idle())
+        return;
     QStringList changed, failures;
     const auto fail = [&](const QString &path, int why) {
         failures << tr("%1 (%2)").arg(QFileInfo(path).fileName(), QString::fromLocal8Bit(strerror(why)));

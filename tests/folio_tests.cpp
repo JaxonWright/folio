@@ -1609,6 +1609,16 @@ private slots:
         ops.setExecutable({dir.filePath("gone.sh"), folder}, true);
         QCOMPARE(failed.count(), 1);
         QVERIFY(failed.at(0).at(0).toString().contains("gone.sh"));
+
+        // Not while other work is under way: a copy still being written
+        // would put its source's mode back once it's done.
+        ops.trash({dir.filePath("gone.txt")});
+        QVERIFY(!ops.busy().isEmpty());
+        ops.setExecutable({script}, true);
+        QCOMPARE(failed.count(), 2);
+        QCOMPARE(failed.last().first().toString(), QString("Try again once the work under way is done."));
+        QCOMPARE(mode(script), 0644u);
+        QTRY_VERIFY(ops.busy().isEmpty());
     }
 
     void fileOpsDeleteForeverOutsideTheTrash()

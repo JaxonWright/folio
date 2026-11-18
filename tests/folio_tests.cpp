@@ -1602,6 +1602,13 @@ private slots:
         ops.setExecutable({script, secret}, false);
         QCOMPARE(mode(script), 0644u);
         QCOMPARE(mode(secret), 0600u);
+
+        // A file gone since the menu opened says so; the folder beside it
+        // is still left alone without a word.
+        QSignalSpy failed(&ops, &FileOps::failed);
+        ops.setExecutable({dir.filePath("gone.sh"), folder}, true);
+        QCOMPARE(failed.count(), 1);
+        QVERIFY(failed.at(0).at(0).toString().contains("gone.sh"));
     }
 
     void fileOpsDeleteForeverOutsideTheTrash()

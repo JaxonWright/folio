@@ -1078,14 +1078,24 @@ bool FileOps::executable(const QStringList &paths) const {
 
 void FileOps::setExecutable(const QStringList &paths, bool on) {
     QStringList changed, failures;
+    const auto fail = [&](const QString &path, int why) {
+        failures << tr("%1 (%2)").arg(QFileInfo(path).fileName(), QString::fromLocal8Bit(strerror(why)));
+    };
     for (const QString &path : paths) {
         // Looked at and changed through one handle, so a link put anywhere
         // in the path after the menu opened can't send the change elsewhere.
         const int fd = ::open(QFile::encodeName(path).constData(), O_PATH | O_NOFOLLOW | O_CLOEXEC);
         struct stat st;
-        if (fd < 0 || ::fstat(fd, &st) != 0 || !S_ISREG(st.st_mode) || st.st_uid != ::geteuid()) {
+        // One gone or out of reach since the menu opened says why; a
+        // folder, link or someone else's file is just left alone.
+        if (fd < 0 || ::fstat(fd, &st) != 0) {
+            fail(path, errno);
             if (fd >= 0)
                 ::close(fd);
+            continue;
+        }
+        if (!S_ISREG(st.st_mode) || st.st_uid != ::geteuid()) {
+            ::close(fd);
             continue;
         }
         // Whoever may read it may run it, so a file kept private stays so;
@@ -1099,7 +1109,7 @@ void FileOps::setExecutable(const QStringList &paths, bool on) {
         if (done)
             changed << path;
         else
-            failures << tr("%1 (%2)").arg(QFileInfo(path).fileName(), QString::fromLocal8Bit(strerror(why)));
+            fail(path, why);
     }
     if (!changed.isEmpty())
         emit modesChanged(changed);

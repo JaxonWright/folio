@@ -5542,11 +5542,12 @@ private slots:
             const qsizetype from = all.indexOf("Compress"), to = all.indexOf("Share");
             return from < 0 || to < from ? all : all.mid(from + 1, to - from - 1);
         };
-        // Plain entries, then submenus, together after Compress and before
-        // Share, and in that order again however often the menu opens.
-        QCOMPARE(around("notes.txt", "text/plain"), QStringList({"Copy Git Link", "Copy To"}));
-        QCOMPARE(around("photo.png", "image/png"), QStringList({"Copy To"}));
-        QCOMPARE(around("notes.txt", "text/plain"), QStringList({"Copy Git Link", "Copy To"}));
+        // Make Executable (they're our own files), then plain entries, then
+        // submenus, together after Compress and before Share, and in that
+        // order again however often the menu opens.
+        QCOMPARE(around("notes.txt", "text/plain"), QStringList({"Make Executable", "Copy Git Link", "Copy To"}));
+        QCOMPARE(around("photo.png", "image/png"), QStringList({"Make Executable", "Copy To"}));
+        QCOMPARE(around("notes.txt", "text/plain"), QStringList({"Make Executable", "Copy Git Link", "Copy To"}));
     }
 
     void pluginDetailsAreAskedForOnceAndKept()

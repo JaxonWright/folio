@@ -1,8 +1,8 @@
 import QtQuick
 
 // The right-click menu. On an item: Open, Open With (each app that can),
-// Preview, Rename, Duplicate, Make Executable (for one's own files), Copy,
-// Cut, Paste Into, Copy Path, Compress, Extract (for archives), Burn (for
+// Preview, Rename, Duplicate, Copy, Cut, Paste Into, Copy Path, Compress,
+// Extract (for archives), Make Executable (for one's own files), Burn (for
 // disk images), plugins' own actions for it, Share (whatever plugins offer
 // for it), Pin, Terminal, Trash. On empty space: Undo, Paste, New Folder,
 // Copy Path, Terminal, hidden files. In the trash: Restore, Empty Trash and
@@ -166,11 +166,6 @@ FolioMenu {
         onTriggered: fileOps.duplicate(fileMenu.target.path)
     }
     FolioMenuItem {
-        shown: fileMenu.canRun
-        text: fileMenu.runs ? qsTr("Make Not Executable") : qsTr("Make Executable")
-        onTriggered: fileOps.setExecutable(fileMenu.paths, !fileMenu.runs)
-    }
-    FolioMenuItem {
         shown: fileMenu.forItem && fileMenu.forFiles
         text: qsTr("Copy")
         keys: "Ctrl+C"
@@ -213,6 +208,11 @@ FolioMenu {
         shown: fileMenu.archives
         text: qsTr("Extract")
         onTriggered: fileOps.extract(fileMenu.paths)
+    }
+    FolioMenuItem {
+        shown: fileMenu.canRun
+        text: fileMenu.runs ? qsTr("Make Not Executable") : qsTr("Make Executable")
+        onTriggered: fileOps.setExecutable(fileMenu.paths, !fileMenu.runs)
     }
     // Each USB stick or SD card the image could go on, those too small for
     // it listed but greyed out. Asked before anything's erased.
